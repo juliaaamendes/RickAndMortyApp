@@ -17,6 +17,11 @@ const CharactersListScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTimeout, setSearchTimeout] = useState(null);
 
+   // Função para esconder o teclado
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   // Buscar personagens (usado tanto para lista normal quanto busca)
   const fetchCharacters = async (pageNum = 1, query = '') => {
     try {
@@ -83,9 +88,13 @@ const CharactersListScreen = ({ navigation }) => {
   };
 
   // Renderizar cada item da lista
+  // Renderizar cada item da lista
   const renderCharacterItem = ({ item }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('Details', { characterId: item.id })}
+      onPress={() => {
+        dismissKeyboard(); // 👈 Esconde teclado ao clicar em personagem
+        navigation.navigate('Details', { characterId: item.id });
+      }}
       style={styles.characterCard}
     >
       <Image
@@ -100,6 +109,17 @@ const CharactersListScreen = ({ navigation }) => {
       </View>
     </TouchableOpacity>
   );
+
+  if (loading && characters.length === 0) {
+    return (
+      <TouchableWithoutFeedback onPress={dismissKeyboard}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" />
+          <Text>Carregando personagens...</Text>
+        </View>
+      </TouchableWithoutFeedback>
+    );
+  }
 
   // Renderizar loading do final da lista
   const renderFooter = () => {
@@ -141,11 +161,13 @@ const CharactersListScreen = ({ navigation }) => {
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {searchQuery ? 'Nenhum personagem encontrado' : 'Nenhum personagem'}
-          </Text>
-        }
-      />
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'Nenhum personagem encontrado' : 'Nenhum personagem'}
+            </Text>
+          }
+          // 👈 ESTA PROP É IMPORTANTE para o teclado não interferir com scroll
+          keyboardShouldPersistTaps="handled"
+        />
     </View>
   );
 };
