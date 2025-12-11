@@ -1,28 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Image, FlatList, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
+import { View, Text, Image, FlatList, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
 
 const CharactersListScreen = ({ navigation }) => {
-  // Estados para a lista básica
+
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Estados para PAGINAÇÃO
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
-  // Estados para BUSCA
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchTimeout, setSearchTimeout] = useState(null);
 
-   // Função para esconder o teclado
+
   const dismissKeyboard = () => {
     Keyboard.dismiss();
   };
 
-  // Buscar personagens (usado tanto para lista normal quanto busca)
+
   const fetchCharacters = async (pageNum = 1, query = '') => {
     try {
       const url = query 
@@ -32,10 +32,10 @@ const CharactersListScreen = ({ navigation }) => {
       const response = await axios.get(url);
       
       if (pageNum === 1) {
-        // Primeira página - substitui a lista
+ 
         setCharacters(response.data.results);
       } else {
-        // Páginas seguintes - adiciona à lista existente
+
         setCharacters(prev => [...prev, ...response.data.results]);
       }
       
@@ -53,12 +53,11 @@ const CharactersListScreen = ({ navigation }) => {
     }
   };
 
-  // Carregar dados iniciais
+
   useEffect(() => {
     fetchCharacters(1, '');
   }, []);
 
-  // 🔄 PAGINAÇÃO INFINITA
   const loadMoreCharacters = () => {
     if (!loadingMore && hasMore) {
       setLoadingMore(true);
@@ -68,16 +67,15 @@ const CharactersListScreen = ({ navigation }) => {
     }
   };
 
-  // 🔍 BUSCA COM DEBOUNCE
   const handleSearch = (text) => {
     setSearchQuery(text);
     
-    // Limpa o timeout anterior
+
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
     
-    // Configura novo timeout para buscar após 500ms
+
     const newTimeout = setTimeout(() => {
       setLoading(true);
       setPage(1);
@@ -87,28 +85,44 @@ const CharactersListScreen = ({ navigation }) => {
     setSearchTimeout(newTimeout);
   };
 
-  // Renderizar cada item da lista
-  // Renderizar cada item da lista
-  const renderCharacterItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => {
-        dismissKeyboard(); // 👈 Esconde teclado ao clicar em personagem
-        navigation.navigate('Details', { characterId: item.id });
-      }}
-      style={styles.characterCard}
-    >
-      <Image
-        source={{ uri: item.image }}
-        style={styles.characterImage}
-      />
-      <View style={styles.characterInfo}>
-        <Text style={styles.characterName}>{item.name}</Text>
-        <Text style={styles.characterDetails}>
-          {item.status} - {item.species}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+
+  const renderCharacterItem = ({ item }) => {
+    const getStatusColor = (status) => {
+      switch (status) {
+        case 'Dead':
+          return '#db4227ff';
+        case 'unknown':
+          return '#f0b44dff';
+        default: // Alive
+          return '#97ce4c';
+      }
+    };
+
+    const statusColor = getStatusColor(item.status);
+
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          dismissKeyboard();
+          navigation.navigate('Details', { characterId: item.id });
+        }}
+        style={styles.characterCard}
+      >
+        <View style={[styles.imageWrapper, { borderColor: statusColor }]}>
+          <Image
+            source={{ uri: item.image }}
+            style={styles.characterImage}
+          />
+        </View>
+        <View style={styles.characterInfo}>
+          <Text style={styles.characterName}>{item.name}</Text>
+          <Text style={styles.characterDetails}>
+            {item.status} - {item.species}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading && characters.length === 0) {
     return (
@@ -121,7 +135,6 @@ const CharactersListScreen = ({ navigation }) => {
     );
   }
 
-  // Renderizar loading do final da lista
   const renderFooter = () => {
     if (!loadingMore) return null;
     
@@ -144,7 +157,6 @@ const CharactersListScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* 🔍 BARRA DE PESQUISA */}
       <TextInput
         style={styles.searchInput}
         placeholder="Buscar personagem..."
@@ -152,7 +164,6 @@ const CharactersListScreen = ({ navigation }) => {
         onChangeText={handleSearch}
       />
       
-      {/* 📜 LISTA DE PERSONAGENS */}
       <FlatList
         data={characters}
         renderItem={renderCharacterItem}
@@ -165,7 +176,6 @@ const CharactersListScreen = ({ navigation }) => {
               {searchQuery ? 'Nenhum personagem encontrado' : 'Nenhum personagem'}
             </Text>
           }
-          // 👈 ESTA PROP É IMPORTANTE para o teclado não interferir com scroll
           keyboardShouldPersistTaps="handled"
         />
     </View>
@@ -199,9 +209,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   characterImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+  },
+  imageWrapper: {
+    borderWidth: 2,
+    borderRadius: 26,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   characterInfo: {
     marginLeft: 10,
